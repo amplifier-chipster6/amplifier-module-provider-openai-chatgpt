@@ -98,7 +98,7 @@ class ChatGPTProvider:
 
         self.priority: int = int(self._config.get("priority", 100))
         self.raw: bool = bool(self._config.get("raw", False))
-        self.default_model: str = self._config.get("default_model", "gpt-5.5")
+        self.default_model: str = self._config.get("default_model", "gpt-5.6-sol")
         self.timeout: float = float(self._config.get("timeout", 300.0))
         self._token_file_path: str | None = self._config.get("token_file_path")
 

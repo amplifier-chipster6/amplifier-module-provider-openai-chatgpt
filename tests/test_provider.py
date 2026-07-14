@@ -259,6 +259,30 @@ class TestBuildPayload:
         assert "model" in payload
         assert payload["model"] == "gpt-4o"
 
+    def test_provider_default_model_is_gpt_56_sol_when_unconfigured(self) -> None:
+        """Unconfigured provider uses gpt-5.6-sol as payload model."""
+        from amplifier_core.message_models import Message
+        from amplifier_module_provider_openai_chatgpt.provider import ChatGPTProvider
+
+        provider = ChatGPTProvider({}, MagicMock(), tokens=None)
+        request = self._make_request(messages=[Message(role="user", content="hi")])
+        payload = provider._build_payload(request)
+        assert payload["model"] == "gpt-5.6-sol"
+
+    def test_request_model_override_preserves_legacy_gpt_55_exactly(self) -> None:
+        """Explicit request model gpt-5.5 is not rewritten."""
+        from amplifier_core.message_models import Message
+        from amplifier_module_provider_openai_chatgpt.provider import ChatGPTProvider
+
+        provider = ChatGPTProvider({}, MagicMock(), tokens=None)
+        request = self._make_request(
+            messages=[Message(role="user", content="hi")],
+            model="gpt-5.5",
+        )
+        payload = provider._build_payload(request)
+        assert provider.default_model == "gpt-5.6-sol"
+        assert payload["model"] == "gpt-5.5"
+
     # ------------------------------------------------------------------
     # System message → instructions
     # ------------------------------------------------------------------
