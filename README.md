@@ -24,14 +24,14 @@ Connects Amplifier to the ChatGPT backend API using OAuth device code authentica
 
 ```toml
 [providers.provider-openai-chatgpt]
-default_model = "gpt-5.5"
+default_model = "gpt-5.6-sol"
 ```
 
 ### All Config Options
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `default_model` | str | `"gpt-5.5"` | Model to use for inference |
+| `default_model` | str | `"gpt-5.6-sol"` | Model to use for inference when a request does not specify one |
 | `raw` | bool | `false` | Include full request/response payloads in `llm:request`/`llm:response` hook events (for debugging) |
 | `login_on_mount` | bool | `true` | Trigger interactive device code login if tokens are absent or expired. Set `false` for non-interactive environments. |
 | `token_file_path` | str | `~/.amplifier/openai-chatgpt-oauth.json` | Path to the OAuth token JSON file |
@@ -61,7 +61,7 @@ Works in SSH/headless sessions -- the device code flow only requires a browser o
 - Subscription plan type detection from OAuth JWT
 - Tool calling support
 - Reasoning effort support (`low`/`medium`/`high`/`xhigh` on all gpt-5.x models)
-- `-fast` model suffix support (e.g. `gpt-5.5-fast` -> `gpt-5.5` with `service_tier: "priority"`)
+- `-fast` model suffix support when model catalog metadata exposes a fast speed tier (for example, `gpt-5.6-sol-fast` -> `gpt-5.6-sol` with `service_tier: "priority"`)
 - Production routing matrix for all 13 Amplifier agent roles
 - `llm:request`/`llm:response` hook events with optional raw payload inclusion
 
@@ -120,7 +120,7 @@ providers:
   - module: provider-openai-chatgpt
     source: /path/to/amplifier-module-provider-openai-chatgpt
     config:
-      default_model: gpt-5.5
+      default_model: gpt-5.6-sol
 ---
 
 # Test: provider-openai-chatgpt
@@ -147,35 +147,33 @@ amplifier routing use openai-chatgpt
 amplifier routing show
 ```
 
-The matrix uses two-tier fallback chains (gpt-5.5 -> gpt-5.4) so it works across subscription tiers. Role highlights:
+The matrix prefers ChatGPT 5.6 models while keeping `gpt-5.5` and `gpt-5.4` as legacy fallback candidates during rollout. Explicit user configurations that name `gpt-5.5` are not rewritten; legacy fallback candidates only affect routing resolution when the matrix searches for an available model.
 
 | Role | Primary Model | Config |
 |------|--------------|--------|
-| `general`, `creative`, `writing`, `vision` | gpt-5.5 | -- |
-| `fast` | gpt-?.?-mini* (glob) | -- |
-| `coding` | gpt-?.?-codex* (glob) | -- |
-| `reasoning`, `research`, `security-audit`, `critical-ops` | gpt-5.5 | `reasoning_effort: high` |
-| `critique` | gpt-5.5 | `reasoning_effort: xhigh` |
+| `general`, `creative`, `writing`, `vision`, `ui-coding` | gpt-5.6-sol | -- |
+| `fast` | gpt-5.6-luna | -- |
+| `coding` | gpt-?.?-codex* (glob), then gpt-5.6-terra | -- |
+| `reasoning`, `research`, `security-audit`, `critical-ops` | gpt-5.6-sol | `reasoning_effort: high` |
+| `critique` | gpt-5.6-sol | `reasoning_effort: xhigh` |
 
 See the matrix YAML header for full documentation on glob strategy, fallback philosophy, and differences from the standard `openai` routing matrix.
 
 ## Supported Models
 
-The model catalog is fetched dynamically from the ChatGPT backend API at `GET /backend-api/codex/models`. Available models depend on your subscription tier. The catalog is cached for 1 hour (configurable via `models_cache_ttl`).
+The model catalog is fetched dynamically from the ChatGPT backend API at `GET /backend-api/codex/models`. Available models, context windows, speed tiers, and reasoning levels depend on your subscription tier and the backend rollout state for your account. The live catalog is cached for 1 hour (configurable via `models_cache_ttl`).
 
-Example catalog for a **Plus** subscription (as of April 2026):
+Official ChatGPT 5.6 model IDs:
 
-| Model | Context Window | Priority | Speed Tiers | Reasoning |
-|-------|---------------|----------|-------------|-----------|
-| gpt-5.5 | 272K | 0 (highest) | fast | low/med/high/xhigh |
-| gpt-5.4 | 272K | 2 | fast | low/med/high/xhigh |
-| gpt-5.4-mini | 272K | 4 | -- | low/med/high/xhigh |
-| gpt-5.3-codex | 272K | 6 | -- | low/med/high/xhigh |
-| gpt-5.2 | 272K | 10 | -- | low/med/high/xhigh |
+| Model | Semantics |
+|-------|-----------|
+| `gpt-5.6-sol` | Strongest general model, provider default, and target of the `gpt-5.6` alias |
+| `gpt-5.6-terra` | Lower-cost strong performance model and preferred coding fallback after Codex-tuned models |
+| `gpt-5.6-luna` | Efficient high-volume model preferred for the `fast` routing role |
 
-Models with a "fast" speed tier support a `-fast` suffix (e.g. `gpt-5.5-fast`) which maps to `service_tier: "priority"` in the request. This consumes priority quota faster.
+Models whose live metadata exposes a `fast` speed tier support a `-fast` suffix (for example, `gpt-5.6-sol-fast`) which maps to the base model with `service_tier: "priority"` in the request. This consumes priority quota faster.
 
-If the live API is unreachable, a minimal fallback catalog (gpt-5.2, gpt-5.2-codex, gpt-4o) is used. The fallback is not cached, so the next `list_models()` call retries the live API.
+If the live API is unreachable, a fallback catalog is used starting with `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`, followed by legacy `gpt-5.5` and `gpt-5.4` entries. The fallback is not cached, so the next `list_models()` call retries the live API.
 
 ## DTU Validation
 
