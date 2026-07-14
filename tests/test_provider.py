@@ -327,16 +327,16 @@ class TestBuildPayload:
         """Model name with -fast suffix has suffix stripped in payload."""
         from amplifier_core.message_models import Message
 
-        provider = self._make_provider(default_model="gpt-5.4-fast")
+        provider = self._make_provider(default_model="gpt-5.6-sol-fast")
         request = self._make_request(messages=[Message(role="user", content="hi")])
         payload = provider._build_payload(request)  # type: ignore[union-attr]
-        assert payload["model"] == "gpt-5.4"
+        assert payload["model"] == "gpt-5.6-sol"
 
     def test_fast_suffix_adds_priority_service_tier(self) -> None:
         """-fast suffix model adds service_tier='priority'."""
         from amplifier_core.message_models import Message
 
-        provider = self._make_provider(default_model="gpt-5.4-fast")
+        provider = self._make_provider(default_model="gpt-5.6-sol-fast")
         request = self._make_request(messages=[Message(role="user", content="hi")])
         payload = provider._build_payload(request)  # type: ignore[union-attr]
         assert payload.get("service_tier") == "priority"
@@ -377,10 +377,10 @@ class TestBuildPayload:
         provider = self._make_provider(default_model="gpt-4o")
         request = self._make_request(
             messages=[Message(role="user", content="hi")],
-            model="gpt-5.4-fast",
+            model="gpt-5.6-terra-fast",
         )
         payload = provider._build_payload(request)  # type: ignore[union-attr]
-        assert payload["model"] == "gpt-5.4"
+        assert payload["model"] == "gpt-5.6-terra"
         assert payload.get("service_tier") == "priority"
 
     # ------------------------------------------------------------------

@@ -179,6 +179,42 @@ class TestToModelInfos:
         assert len(result) == 1
         assert result[0].id == "gpt-4o"
 
+    def test_to_model_infos_emits_gpt_56_fast_variant_when_metadata_supports_fast(
+        self,
+    ) -> None:
+        """5.6 entries emit -fast variants only from speed-tier metadata."""
+        from amplifier_module_provider_openai_chatgpt.models import to_model_infos
+
+        entries = [
+            _make_entry(
+                "gpt-5.6-sol",
+                display_name="GPT 5.6 Sol",
+                context_window=1_000_000,
+                speed_tiers=["fast"],
+            )
+        ]
+        result = to_model_infos(entries)
+
+        assert [model.id for model in result] == ["gpt-5.6-sol", "gpt-5.6-sol-fast"]
+        fast = result[1]
+        assert fast.display_name == "GPT 5.6 Sol (fast)"
+        assert fast.context_window == 1_000_000
+
+    def test_to_model_infos_does_not_emit_luna_fast_without_metadata(self) -> None:
+        """Luna does not get a speculative -fast variant without metadata."""
+        from amplifier_module_provider_openai_chatgpt.models import to_model_infos
+
+        entries = [
+            _make_entry(
+                "gpt-5.6-luna",
+                display_name="GPT 5.6 Luna",
+                speed_tiers=[],
+            )
+        ]
+        result = to_model_infos(entries)
+
+        assert [model.id for model in result] == ["gpt-5.6-luna"]
+
     def test_fallback_first_entries_are_gpt_56_variants(self) -> None:
         """FALLBACK_MODELS first entries must be the ChatGPT 5.6 variants."""
         from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
