@@ -2110,12 +2110,12 @@ class TestComplete401Retry:
 
 
 # ---------------------------------------------------------------------------
-# TestGpt55ProValidator — _validate_gpt_5_5_pro_effort()
+# TestLegacyGpt55ProValidator — legacy _validate_gpt_5_5_pro_effort()
 # ---------------------------------------------------------------------------
 
 
-class TestGpt55ProValidator:
-    """Unit tests for _validate_gpt_5_5_pro_effort() and its call site in _build_payload()."""
+class TestLegacyGpt55ProValidator:
+    """Legacy guard for old gpt-5.5-pro constraints; do not extend speculatively to GPT-5.6."""
 
     def _validate(self, model_id: str, reasoning_param: object) -> None:
         """Call the module-level validator directly."""
@@ -2137,18 +2137,18 @@ class TestGpt55ProValidator:
         return ChatRequest(messages=messages, **kwargs)  # type: ignore[arg-type]
 
     # ------------------------------------------------------------------
-    # String effort forms — rejected values
+    # Legacy GPT-5.5-pro effort forms — rejected values
     # ------------------------------------------------------------------
 
     def test_rejects_low_effort(self) -> None:
-        """String 'low' must raise InvalidRequestError for gpt-5.5-pro models."""
+        """Legacy gpt-5.5-pro guard rejects string 'low' for compatibility."""
         from amplifier_core import llm_errors as kernel_errors
 
         with pytest.raises(kernel_errors.InvalidRequestError):
             self._validate("gpt-5.5-pro", "low")
 
     def test_rejects_none_effort_string(self) -> None:
-        """String 'none' must raise InvalidRequestError for gpt-5.5-pro models."""
+        """Legacy gpt-5.5-pro guard rejects string 'none' for compatibility."""
         from amplifier_core import llm_errors as kernel_errors
 
         with pytest.raises(kernel_errors.InvalidRequestError):
@@ -2196,6 +2196,11 @@ class TestGpt55ProValidator:
     def test_non_pro_model_skipped(self) -> None:
         """'gpt-5.5' (non-pro) with 'low' effort must not raise."""
         self._validate("gpt-5.5", "low")  # no error expected
+
+    @pytest.mark.parametrize("model", ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"])
+    def test_gpt_56_non_pro_models_allow_low_effort(self, model: str) -> None:
+        """GPT-5.6 non-pro models must not inherit the legacy gpt-5.5-pro restriction."""
+        self._validate(model, "low")  # no error expected
 
     def test_dated_snapshot(self) -> None:
         """'gpt-5.5-pro-2026-04-23' still matches the gpt-5.5-pro prefix → must raise on 'low'."""
