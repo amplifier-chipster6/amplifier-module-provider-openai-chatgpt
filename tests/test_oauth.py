@@ -475,7 +475,9 @@ class TestRefreshTokens:
 
         token_path = str(tmp_path / "tokens.json")
         with open(token_path, "w") as f:
-            json.dump({"account_id": "acct_1", "plan_type": "free", "access_token": "old"}, f)
+            json.dump(
+                {"account_id": "acct_1", "plan_type": "free", "access_token": "old"}, f
+            )
 
         id_token_jwt = _make_jwt(
             {"https://api.openai.com/auth": {"chatgpt_plan_type": "pro"}}
@@ -504,7 +506,9 @@ class TestRefreshTokens:
 
         token_path = str(tmp_path / "tokens.json")
         with open(token_path, "w") as f:
-            json.dump({"account_id": "acct_1", "plan_type": "plus", "access_token": "old"}, f)
+            json.dump(
+                {"account_id": "acct_1", "plan_type": "plus", "access_token": "old"}, f
+            )
 
         mock_async_client = _make_httpx_mock(
             {
