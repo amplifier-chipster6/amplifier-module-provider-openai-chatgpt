@@ -179,13 +179,45 @@ class TestToModelInfos:
         assert len(result) == 1
         assert result[0].id == "gpt-4o"
 
-    def test_fallback_first_entry_is_gpt_55(self) -> None:
-        """FALLBACK_MODELS first entry must be gpt-5.5 (most-capable current model)."""
+    def test_fallback_first_entries_are_gpt_56_variants(self) -> None:
+        """FALLBACK_MODELS first entries must be the ChatGPT 5.6 variants."""
         from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
 
-        assert len(FALLBACK_MODELS) > 0, "FALLBACK_MODELS must not be empty"
-        assert FALLBACK_MODELS[0]["slug"] == "gpt-5.5", (
-            f"Expected gpt-5.5 as first fallback entry, got {FALLBACK_MODELS[0]['slug']!r}"
+        assert [entry["slug"] for entry in FALLBACK_MODELS][:3] == [
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+        ]
+
+    def test_fallback_keeps_legacy_models_after_gpt_56(self) -> None:
+        """Legacy rollout models must remain after the ChatGPT 5.6 variants."""
+        from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
+
+        slugs = [entry["slug"] for entry in FALLBACK_MODELS]
+        luna_index = slugs.index("gpt-5.6-luna")
+
+        assert "gpt-5.5" in slugs
+        assert "gpt-5.4" in slugs
+        assert slugs.index("gpt-5.5") > luna_index
+        assert slugs.index("gpt-5.4") > luna_index
+
+    @pytest.mark.parametrize(
+        "slug",
+        ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+    )
+    def test_fallback_gpt_56_metadata_shape(self, slug: str) -> None:
+        """Each ChatGPT 5.6 fallback entry must expose complete metadata."""
+        from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
+
+        entry = next(model for model in FALLBACK_MODELS if model["slug"] == slug)
+
+        assert entry["display_name"]
+        assert entry["context_window"] > 0
+        assert entry["max_context_window"] >= entry["context_window"]
+        assert entry["visibility"] == "list"
+        assert entry["supported_in_api"] is True
+        assert {"none", "low", "medium", "high"}.issubset(
+            set(entry["supported_reasoning_levels"])
         )
 
     def test_fallback_models_round_trip(self) -> None:

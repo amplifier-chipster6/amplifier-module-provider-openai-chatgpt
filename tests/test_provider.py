@@ -27,13 +27,15 @@ class TestFallbackCatalog:
         for entry in FALLBACK_MODELS:
             assert "slug" in entry, f"Missing 'slug' in {entry}"
 
-    def test_fallback_first_entry_is_gpt_55(self) -> None:
+    def test_fallback_first_entries_are_gpt_56_variants(self) -> None:
         from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
 
-        assert len(FALLBACK_MODELS) > 0, "FALLBACK_MODELS must not be empty"
-        assert FALLBACK_MODELS[0]["slug"] == "gpt-5.5", (
-            f"Expected gpt-5.5 as first fallback entry, got {FALLBACK_MODELS[0]['slug']!r}"
-        )
+        assert len(FALLBACK_MODELS) >= 3, "FALLBACK_MODELS must include 5.6 variants"
+        assert [entry["slug"] for entry in FALLBACK_MODELS][:3] == [
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+        ]
 
     def test_fallback_contains_gpt_52(self) -> None:
         from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
@@ -1848,7 +1850,7 @@ class TestCompleteErrorMapping:
 
             async def aiter_lines(self):  # type: ignore[return]
                 raise httpx.ReadTimeout("Request timed out")
-                yield  # makes this an async generator  # noqa: unreachable
+                yield  # makes this an async generator
 
             async def aread(self) -> bytes:
                 return b""
