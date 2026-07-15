@@ -33,6 +33,36 @@ DEFAULT_MAX_OUTPUT_TOKENS = 128_000
 
 FALLBACK_MODELS: list[dict[str, Any]] = [
     {
+        "slug": "gpt-5.6-sol",
+        "display_name": "GPT 5.6 Sol",
+        "context_window": 1_000_000,
+        "max_context_window": 1_000_000,
+        "additional_speed_tiers": ["fast"],
+        "supported_reasoning_levels": ["none", "low", "medium", "high", "xhigh"],
+        "visibility": "list",
+        "supported_in_api": True,
+    },
+    {
+        "slug": "gpt-5.6-terra",
+        "display_name": "GPT 5.6 Terra",
+        "context_window": 1_000_000,
+        "max_context_window": 1_000_000,
+        "additional_speed_tiers": ["fast"],
+        "supported_reasoning_levels": ["none", "low", "medium", "high", "xhigh"],
+        "visibility": "list",
+        "supported_in_api": True,
+    },
+    {
+        "slug": "gpt-5.6-luna",
+        "display_name": "GPT 5.6 Luna",
+        "context_window": 1_000_000,
+        "max_context_window": 1_000_000,
+        "additional_speed_tiers": [],
+        "supported_reasoning_levels": ["none", "low", "medium", "high"],
+        "visibility": "list",
+        "supported_in_api": True,
+    },
+    {
         "slug": "gpt-5.5",
         "display_name": "GPT 5.5",
         "context_window": 1_000_000,
