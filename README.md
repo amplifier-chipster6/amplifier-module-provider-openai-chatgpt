@@ -60,7 +60,7 @@ Works in SSH/headless sessions -- the device code flow only requires a browser o
 - Dynamic model catalog from live API (cached, with fallback)
 - Subscription plan type detection from OAuth JWT
 - Tool calling support
-- Reasoning effort support (`low`/`medium`/`high`/`xhigh` on all gpt-5.x models)
+- Reasoning effort support (accepted levels are determined by each live catalog entry)
 - `-fast` model suffix support (e.g. `gpt-5.5-fast` -> `gpt-5.5` with `service_tier: "priority"`)
 - Production routing matrix for all 13 Amplifier agent roles
 - `llm:request`/`llm:response` hook events with optional raw payload inclusion
@@ -161,21 +161,18 @@ See the matrix YAML header for full documentation on glob strategy, fallback phi
 
 ## Supported Models
 
-The model catalog is fetched dynamically from the ChatGPT backend API at `GET /backend-api/codex/models`. Available models depend on your subscription tier. The catalog is cached for 1 hour (configurable via `models_cache_ttl`).
+The model catalog is fetched dynamically from the account-scoped ChatGPT backend endpoint `GET /backend-api/codex/models`. This endpoint is not part of the documented OpenAI API. Its results are **live observations for the authenticated account**, not an official, globally available model list: entries and their context windows, reasoning levels, speed tiers, visibility, and API availability can vary by subscription and rollout state. The catalog is cached for 1 hour (configurable via `models_cache_ttl`).
 
-Example catalog for a **Plus** subscription (as of April 2026):
+This repository does not currently contain a captured live catalog that identifies `gpt-5.6`, `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna`, and the OpenAI documentation linked below does not document those IDs or names. Consequently, this README makes no claims about a GPT-5.6 alias, the relative capabilities of Sol, Terra, or Luna, their context windows or reasoning levels, their speed tiers, or their availability through either the documented OpenAI API or this account-scoped ChatGPT backend. Do not add those claims without one of the following:
 
-| Model | Context Window | Priority | Speed Tiers | Reasoning |
-|-------|---------------|----------|-------------|-----------|
-| gpt-5.5 | 272K | 0 (highest) | fast | low/med/high/xhigh |
-| gpt-5.4 | 272K | 2 | fast | low/med/high/xhigh |
-| gpt-5.4-mini | 272K | 4 | -- | low/med/high/xhigh |
-| gpt-5.3-codex | 272K | 6 | -- | low/med/high/xhigh |
-| gpt-5.2 | 272K | 10 | -- | low/med/high/xhigh |
+1. an OpenAI documentation link that states the claimed behavior; or
+2. a dated, sanitized catalog capture for the account on which the behavior was observed, clearly labeled as account-specific evidence.
 
-Models with a "fast" speed tier support a `-fast` suffix (e.g. `gpt-5.5-fast`) which maps to `service_tier: "priority"` in the request. This consumes priority quota faster.
+Authoritative public references: [OpenAI model documentation](https://platform.openai.com/docs/models) and [OpenAI model release notes](https://help.openai.com/en/articles/9624314-model-release-notes). These references describe the documented OpenAI product surface; they do not document this provider's private ChatGPT backend endpoint.
 
-If the live API is unreachable, a minimal fallback catalog (gpt-5.2, gpt-5.2-codex, gpt-4o) is used. The fallback is not cached, so the next `list_models()` call retries the live API.
+When a live entry includes `"fast"` in `additional_speed_tiers`, the provider exposes a synthetic `-fast` ID (for example, `gpt-5.5-fast`). The synthetic ID sends the entry's base slug with `service_tier: "priority"`; it is provider behavior derived from catalog metadata, not a separate model ID claimed by the official model documentation.
+
+If the live endpoint is unreachable, the provider uses the static entries in `FALLBACK_MODELS` in `models.py`. Those entries are compatibility defaults, not evidence that a model is enabled for a particular account. The fallback is not cached, so the next `list_models()` call retries the live endpoint.
 
 ## DTU Validation
 
