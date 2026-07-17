@@ -24,14 +24,14 @@ Connects Amplifier to the ChatGPT backend API using OAuth device code authentica
 
 ```toml
 [providers.provider-openai-chatgpt]
-default_model = "gpt-5.5"
+default_model = "gpt-5.6-sol"
 ```
 
 ### All Config Options
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `default_model` | str | `"gpt-5.5"` | Model to use for inference |
+| `default_model` | str | `"gpt-5.6-sol"` | Model to use for inference |
 | `raw` | bool | `false` | Include full request/response payloads in `llm:request`/`llm:response` hook events (for debugging) |
 | `login_on_mount` | bool | `true` | Trigger interactive device code login if tokens are absent or expired. Set `false` for non-interactive environments. |
 | `token_file_path` | str | `~/.amplifier/openai-chatgpt-oauth.json` | Path to the OAuth token JSON file |
@@ -120,7 +120,7 @@ providers:
   - module: provider-openai-chatgpt
     source: /path/to/amplifier-module-provider-openai-chatgpt
     config:
-      default_model: gpt-5.5
+      default_model: gpt-5.6-sol
 ---
 
 # Test: provider-openai-chatgpt
@@ -147,17 +147,18 @@ amplifier routing use openai-chatgpt
 amplifier routing show
 ```
 
-The matrix uses two-tier fallback chains (gpt-5.5 -> gpt-5.4) so it works across subscription tiers. Role highlights:
+The matrix uses role-specific GPT-5.6 fallback chains. Role highlights:
 
 | Role | Primary Model | Config |
 |------|--------------|--------|
-| `general`, `creative`, `writing`, `vision` | gpt-5.5 | -- |
-| `fast` | gpt-?.?-mini* (glob) | -- |
-| `coding` | gpt-?.?-codex* (glob) | -- |
-| `reasoning`, `research`, `security-audit`, `critical-ops` | gpt-5.5 | `reasoning_effort: high` |
-| `critique` | gpt-5.5 | `reasoning_effort: xhigh` |
+| `general`, `creative`, `writing`, `vision` | gpt-5.6-sol | -- |
+| `fast` | gpt-5.6-luna | -- |
+| `coding` | gpt-5.6-codex | -- |
+| `reasoning`, `research`, `security-audit`, `critical-ops` | gpt-5.6-sol | `reasoning_effort: high` |
+| `critique` | gpt-5.6-sol | `reasoning_effort: xhigh` |
 
-See the matrix YAML header for full documentation on glob strategy, fallback philosophy, and differences from the standard `openai` routing matrix.
+See [the GPT-5.6 routing policy](docs/ROUTING_POLICY.md) for the rationale,
+fallback tradeoffs, evidence status, and maintenance process.
 
 ## Supported Models
 

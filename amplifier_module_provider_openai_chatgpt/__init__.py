@@ -38,7 +38,7 @@ async def mount(
             - login_on_mount: If True (default), trigger login when tokens
               are absent or invalid.
             - raw: Pass raw payloads/events through provider hooks.
-            - default_model: Default model name (default: 'gpt-4o').
+            - default_model: Default model name (default: 'gpt-5.6-sol').
             - timeout: HTTP timeout in seconds (default: 300.0).
 
     Returns:
