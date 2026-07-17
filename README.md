@@ -209,6 +209,10 @@ See [docs/DTU_VALIDATION.md](docs/DTU_VALIDATION.md) for the full guide covering
 
 ## Contributing
 
+Maintainers of downstream customizations should follow the [upstream synchronization
+and branch strategy](docs/MAINTENANCE.md). It explains how to preserve a clean
+upstream mirror, update feature branches, and recover safely from history mistakes.
+
 > [!NOTE]
 > This project is not currently accepting external contributions, but we're actively working toward opening this up. We value community input and look forward to collaborating in the future. For now, feel free to fork and experiment!
 
