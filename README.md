@@ -177,6 +177,10 @@ Models with a "fast" speed tier support a `-fast` suffix (e.g. `gpt-5.5-fast`) w
 
 If the live API is unreachable, a minimal fallback catalog (gpt-5.2, gpt-5.2-codex, gpt-4o) is used. The fallback is not cached, so the next `list_models()` call retries the live API.
 
+The proposed durable, account-scoped last-known-good cache strategy is documented
+in [Validated Persistent Model Catalog Design](docs/MODEL_CATALOG_CACHE_DESIGN.md).
+It is a design proposal and is not implemented by the current in-memory cache.
+
 ## DTU Validation
 
 This module includes a [Digital Twin Universe](https://github.com/microsoft/amplifier-bundle-digital-twin-universe) profile for end-to-end validation in an isolated container. The DTU environment provisions Amplifier with the provider, a pre-authenticated OAuth token, and the routing matrix -- then runs acceptance tests against the live ChatGPT backend API.
