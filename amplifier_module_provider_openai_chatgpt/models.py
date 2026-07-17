@@ -32,6 +32,28 @@ DEFAULT_MAX_OUTPUT_TOKENS = 128_000
 # ---------------------------------------------------------------------------
 
 FALLBACK_MODELS: list[dict[str, Any]] = [
+    # GPT-5.6 capability metadata has not been captured from the live catalog.
+    # Keep these entries deliberately minimal: a one-token context window is the
+    # smallest usable ModelInfo value, and omitted capability fields cannot
+    # accidentally advertise fast tiers, reasoning levels, or API visibility.
+    {
+        "slug": "gpt-5.6-sol",
+        "display_name": "GPT 5.6 Sol",
+        "context_window": 1,
+        "max_context_window": 1,
+    },
+    {
+        "slug": "gpt-5.6-terra",
+        "display_name": "GPT 5.6 Terra",
+        "context_window": 1,
+        "max_context_window": 1,
+    },
+    {
+        "slug": "gpt-5.6-luna",
+        "display_name": "GPT 5.6 Luna",
+        "context_window": 1,
+        "max_context_window": 1,
+    },
     {
         "slug": "gpt-5.5",
         "display_name": "GPT 5.5",
