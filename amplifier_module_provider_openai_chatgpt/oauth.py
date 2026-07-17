@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import secrets
+from time import monotonic
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
@@ -46,6 +47,8 @@ DEVICE_CODE_USERCODE_URL = f"{OAUTH_ISSUER}/api/accounts/deviceauth/usercode"
 DEVICE_CODE_TOKEN_URL = f"{OAUTH_ISSUER}/api/accounts/deviceauth/token"
 DEVICE_CODE_VERIFICATION_URL = f"{OAUTH_ISSUER}/codex/device"
 DEVICE_CODE_POLL_INTERVAL = 5  # seconds between polling attempts
+DEVICE_CODE_TIMEOUT = 900  # fallback when the authorization server omits expires_in
+DEVICE_CODE_SLOW_DOWN_INCREMENT = 5
 
 # ---------------------------------------------------------------------------
 # ChatGPT Codex API
@@ -430,9 +433,10 @@ async def start_device_code_flow() -> dict:
     Step 3: Polls DEVICE_CODE_TOKEN_URL until the user authorizes or an error
     occurs.  Handles these poll responses:
 
-    - ``authorization_pending``: continue polling after sleeping *interval* seconds.
+    - ``authorization_pending`` (including
+      ``deviceauth_authorization_pending``): continue polling after sleeping.
     - ``slow_down``: increase *interval* by 5 and continue polling.
-    - ``expired_token``: raise :exc:`RuntimeError`.
+    - ``expired_token`` and ``access_denied``: raise :exc:`RuntimeError`.
     - any other error: raise :exc:`RuntimeError`.
     - success (no ``error`` key): return immediately.
 
@@ -475,6 +479,8 @@ async def start_device_code_flow() -> dict:
         "device_auth_id", ""
     )
     interval: int = int(device_data.get("interval", DEVICE_CODE_POLL_INTERVAL))
+    expires_in = int(device_data.get("expires_in", DEVICE_CODE_TIMEOUT))
+    deadline = monotonic() + expires_in
 
     # Step 2: Prompt the user to authorize via their browser.
     # Use stderr so the message is visible even when the CLI UI has captured stdout.
@@ -501,7 +507,12 @@ async def start_device_code_flow() -> dict:
     }
 
     while True:
-        await asyncio.sleep(interval)
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            raise RuntimeError("Device code expired before authorization completed.")
+        await asyncio.sleep(min(interval, remaining))
+        if monotonic() >= deadline:
+            raise RuntimeError("Device code expired before authorization completed.")
 
         poll_data = json.dumps(
             {
@@ -518,6 +529,26 @@ async def start_device_code_flow() -> dict:
                 )
                 resp.raise_for_status()
                 result = resp.json()
+            error = result.get("error")
+            error_code = (
+                error.get("code", "") if isinstance(error, dict) else error or ""
+            )
+            if error_code in (
+                "deviceauth_authorization_unknown",
+                "deviceauth_authorization_pending",
+                "authorization_pending",
+            ):
+                continue
+            if error_code == "slow_down":
+                interval += DEVICE_CODE_SLOW_DOWN_INCREMENT
+                continue
+            if error_code in ("expired_token", "deviceauth_expired"):
+                raise RuntimeError("Device code expired. Please try again.")
+            if error_code == "access_denied":
+                raise RuntimeError("Device authorization was denied by the user.")
+            if error_code:
+                raise RuntimeError(f"Device code flow error: {error_code} - {result}")
+
             # Success — return the authorization code and PKCE verifier.
             # The response may contain authorization_code (for token exchange)
             # or tokens directly (access_token, refresh_token).
@@ -533,18 +564,22 @@ async def start_device_code_flow() -> dict:
                 return {"tokens_direct": True, **result}
         except httpx.HTTPStatusError as e:
             body = e.response.json()
-            error_code = body.get("error", {}).get("code", "")
+            error = body.get("error", "")
+            error_code = error.get("code", "") if isinstance(error, dict) else error
 
             if error_code in (
                 "deviceauth_authorization_unknown",
+                "deviceauth_authorization_pending",
                 "authorization_pending",
             ):
                 continue  # User hasn't authorized yet; sleep then retry.
             elif error_code == "slow_down":
-                interval += 5
+                interval += DEVICE_CODE_SLOW_DOWN_INCREMENT
                 continue
             elif error_code in ("expired_token", "deviceauth_expired"):
                 raise RuntimeError("Device code expired. Please try again.")
+            elif error_code == "access_denied":
+                raise RuntimeError("Device authorization was denied by the user.")
             else:
                 raise RuntimeError(f"Device code flow error: {error_code} - {body}")
 
