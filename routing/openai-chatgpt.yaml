@@ -1,8 +1,8 @@
-# GPT-5.6 routing policy. Availability is resolved against each account's live
-# catalog; no speed tier is assumed. Coding prefers any catalog Codex model and
-# then Terra/Sol. Other roles try Sol, Terra, and Luna in that order. During a
-# staged rollout, catalog resolution skips absent candidates rather than sending
-# an unavailable GPT-5.6 ID.
+# OpenAI documents Sol as flagship, Terra as balanced, and Luna as efficient.
+# This repository's routing policy uses Sol for general/quality work, Luna for
+# the fast role, and a catalog-provided Codex model for coding. Availability is
+# resolved against the live catalog; a final GPT-5 glob keeps every role usable
+# during staged rollout without inventing a GPT-5.6 Codex ID.
 name: openai-chatgpt
 description: "OpenAI ChatGPT backend with account-scoped model discovery"
 updated: "2026-07-19"
@@ -13,7 +13,12 @@ roles:
       - {provider: openai-chatgpt, model: gpt-5.6-terra}
       - {provider: openai-chatgpt, model: gpt-5.6-luna}
       - {provider: openai-chatgpt, model: "gpt-5.*"}
-  fast: *general
+  fast:
+    candidates:
+      - {provider: openai-chatgpt, model: gpt-5.6-luna}
+      - {provider: openai-chatgpt, model: gpt-5.6-terra}
+      - {provider: openai-chatgpt, model: gpt-5.6-sol}
+      - {provider: openai-chatgpt, model: "gpt-5.*"}
   ui-coding: *general
   creative: *general
   writing: *general

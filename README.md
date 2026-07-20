@@ -130,7 +130,7 @@ providers:
   - module: provider-openai-chatgpt
     source: /path/to/amplifier-module-provider-openai-chatgpt
     config:
-      default_model: gpt-5.5
+      default_model: gpt-5.6-sol
 ---
 
 # Test: provider-openai-chatgpt
@@ -142,10 +142,20 @@ amplifier run --bundle ./test-chatgpt.md "Hello, can you hear me?"
 
 ## Routing Matrix
 
-`routing/openai-chatgpt.yaml` documents the policy and maps all 13 roles. General
-roles prefer Sol, Terra, then Luna. Coding uses catalog-based Codex matching,
-then Terra/Sol. A final live-catalog glob keeps unconfigured requests usable
-when an account has not received GPT-5.6. Explicit `request.model` always wins.
+`routing/openai-chatgpt.yaml` documents the policy and maps all 13 roles.
+OpenAI's public model guidance positions Sol as flagship, Terra as balanced, and
+Luna as efficient for high-volume work; candidate order is this repository's
+policy:
+
+- General and quality-first roles prefer Sol, then Terra and Luna.
+- Fast work prefers Luna, then Terra and Sol.
+- Coding prefers a catalog-provided Codex model, then Terra and Sol.
+- Reasoning roles prefer Sol or Terra with the effort recorded in the matrix.
+
+A final live-catalog `gpt-5.*` glob keeps role-based, unconfigured requests
+usable when GPT-5.6 is unavailable during staged rollout.
+Explicit `request.model` always wins. The provider does not inspect subscription
+data or silently replace an explicit caller selection.
 
 ## Supported Models
 
