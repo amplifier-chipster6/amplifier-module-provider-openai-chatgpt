@@ -188,8 +188,17 @@ class TestToModelInfos:
             "gpt-5.6-terra",
             "gpt-5.6-luna",
         ]
+        assert [m["display_name"] for m in FALLBACK_MODELS] == [
+            "GPT-5.6 Sol",
+            "GPT-5.6 Terra",
+            "GPT-5.6 Luna",
+        ]
         assert all(m["context_window"] == 1_050_000 for m in FALLBACK_MODELS)
-        assert all(m["additional_speed_tiers"] == [] for m in FALLBACK_MODELS)
+        assert all(m["max_context_window"] == 1_050_000 for m in FALLBACK_MODELS)
+        for model in FALLBACK_MODELS:
+            assert "additional_speed_tiers" not in model
+            assert "visibility" not in model
+            assert "supported_in_api" not in model
 
     def test_fallback_models_round_trip(self) -> None:
         """FALLBACK_MODELS through to_model_infos produces valid ModelInfo objects."""
@@ -202,7 +211,11 @@ class TestToModelInfos:
 
         result = to_model_infos(FALLBACK_MODELS)
 
-        assert len(result) > 0
+        assert [model.id for model in result] == [
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+        ]
         for m in result:
             assert isinstance(m, ModelInfo)
             assert m.id, f"ModelInfo missing id: {m}"
