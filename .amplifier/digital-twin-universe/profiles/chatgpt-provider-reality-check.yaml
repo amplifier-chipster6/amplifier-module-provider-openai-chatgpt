@@ -35,6 +35,11 @@
 #   amplifier-digital-twin destroy <id>
 
 name: chatgpt-provider-reality-check
+variables:
+  PROVIDER_SHA:
+    required: true
+    description: Exact release-candidate commit to install
+
 description: >
   Validate the ChatGPT provider module in isolation. Copies a pre-authenticated
   OAuth token from the host, installs Amplifier with the provider, and verifies
@@ -80,7 +85,7 @@ provision:
     - |
       export PATH="/root/.local/bin:$PATH"
       amplifier module add provider-openai-chatgpt \
-        --source git+https://github.com/microsoft/amplifier-module-provider-openai-chatgpt
+        --source git+https://github.com/chipster6/amplifier-module-provider-openai-chatgpt@${PROVIDER_SHA}
     - |
       export PATH="/root/.local/bin:$PATH"
       amplifier provider install openai-chatgpt --force
@@ -96,13 +101,13 @@ provision:
       config:
         providers:
           - module: provider-openai-chatgpt
-            source: git+https://github.com/microsoft/amplifier-module-provider-openai-chatgpt
+            source: git+https://github.com/chipster6/amplifier-module-provider-openai-chatgpt@${PROVIDER_SHA}
             config:
               login_on_mount: false
       modules:
         providers:
           - module: provider-openai-chatgpt
-            source: git+https://github.com/microsoft/amplifier-module-provider-openai-chatgpt
+            source: git+https://github.com/chipster6/amplifier-module-provider-openai-chatgpt@${PROVIDER_SHA}
       EOF
 
     # Verify installation

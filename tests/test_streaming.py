@@ -49,27 +49,54 @@ def _build_text_stream_lines(
         full_text = "".join(deltas)
 
     lines = [
-        _j({"type": "response.created",
-            "response": {"id": "resp_test", "model": "gpt-4o"}}),
-        _j({"type": "response.output_item.added",
-            "output_index": output_index,
-            "item": {"type": "message"}}),
+        _j(
+            {
+                "type": "response.created",
+                "response": {"id": "resp_test", "model": "gpt-4o"},
+            }
+        ),
+        _j(
+            {
+                "type": "response.output_item.added",
+                "output_index": output_index,
+                "item": {"type": "message"},
+            }
+        ),
     ]
     for delta in deltas:
-        lines.append(_j({
-            "type": "response.output_text.delta",
-            "output_index": output_index,
-            "delta": delta,
-        }))
+        lines.append(
+            _j(
+                {
+                    "type": "response.output_text.delta",
+                    "output_index": output_index,
+                    "delta": delta,
+                }
+            )
+        )
     lines += [
-        _j({"type": "response.output_item.done",
-            "output_index": output_index,
-            "item": {"type": "message",
-                     "content": [{"type": "output_text", "text": full_text}]}}),
-        _j({"type": "response.done", "response": {
-            "id": "resp_test", "model": "gpt-4o",
-            "usage": {"input_tokens": input_tokens,
-                      "output_tokens": output_tokens}}}),
+        _j(
+            {
+                "type": "response.output_item.done",
+                "output_index": output_index,
+                "item": {
+                    "type": "message",
+                    "content": [{"type": "output_text", "text": full_text}],
+                },
+            }
+        ),
+        _j(
+            {
+                "type": "response.done",
+                "response": {
+                    "id": "resp_test",
+                    "model": "gpt-4o",
+                    "usage": {
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                    },
+                },
+            }
+        ),
         "data: [DONE]",
     ]
     return lines
@@ -85,26 +112,51 @@ def _build_thinking_stream_lines(
 ) -> list[str]:
     """Build SSE lines for a reasoning/thinking block."""
     lines = [
-        _j({"type": "response.created",
-            "response": {"id": "resp_test", "model": "gpt-4o"}}),
-        _j({"type": "response.output_item.added",
-            "output_index": output_index,
-            "item": {"type": "reasoning"}}),
+        _j(
+            {
+                "type": "response.created",
+                "response": {"id": "resp_test", "model": "gpt-4o"},
+            }
+        ),
+        _j(
+            {
+                "type": "response.output_item.added",
+                "output_index": output_index,
+                "item": {"type": "reasoning"},
+            }
+        ),
     ]
     for delta in deltas:
-        lines.append(_j({
-            "type": thinking_event,
-            "output_index": output_index,
-            "delta": delta,
-        }))
+        lines.append(
+            _j(
+                {
+                    "type": thinking_event,
+                    "output_index": output_index,
+                    "delta": delta,
+                }
+            )
+        )
     lines += [
-        _j({"type": "response.output_item.done",
-            "output_index": output_index,
-            "item": {"type": "reasoning", "summary": []}}),
-        _j({"type": "response.done", "response": {
-            "id": "resp_test", "model": "gpt-4o",
-            "usage": {"input_tokens": input_tokens,
-                      "output_tokens": output_tokens}}}),
+        _j(
+            {
+                "type": "response.output_item.done",
+                "output_index": output_index,
+                "item": {"type": "reasoning", "summary": []},
+            }
+        ),
+        _j(
+            {
+                "type": "response.done",
+                "response": {
+                    "id": "resp_test",
+                    "model": "gpt-4o",
+                    "usage": {
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                    },
+                },
+            }
+        ),
         "data: [DONE]",
     ]
     return lines
@@ -121,22 +173,52 @@ def _build_tool_use_stream_lines(
 ) -> list[str]:
     """Build SSE lines for a function_call (tool_use) block."""
     return [
-        _j({"type": "response.created",
-            "response": {"id": "resp_test", "model": "gpt-4o"}}),
-        _j({"type": "response.output_item.added",
-            "output_index": output_index,
-            "item": {"type": "function_call", "name": tool_name}}),
+        _j(
+            {
+                "type": "response.created",
+                "response": {"id": "resp_test", "model": "gpt-4o"},
+            }
+        ),
+        _j(
+            {
+                "type": "response.output_item.added",
+                "output_index": output_index,
+                "item": {"type": "function_call", "name": tool_name},
+            }
+        ),
         # function_call_arguments.delta — should be silently consumed (no event emitted)
-        _j({"type": "response.function_call_arguments.delta",
-            "output_index": output_index, "delta": tool_args_delta}),
-        _j({"type": "response.output_item.done",
-            "output_index": output_index,
-            "item": {"type": "function_call", "call_id": call_id,
-                     "name": tool_name, "arguments": tool_args_delta}}),
-        _j({"type": "response.done", "response": {
-            "id": "resp_test", "model": "gpt-4o",
-            "usage": {"input_tokens": input_tokens,
-                      "output_tokens": output_tokens}}}),
+        _j(
+            {
+                "type": "response.function_call_arguments.delta",
+                "output_index": output_index,
+                "delta": tool_args_delta,
+            }
+        ),
+        _j(
+            {
+                "type": "response.output_item.done",
+                "output_index": output_index,
+                "item": {
+                    "type": "function_call",
+                    "call_id": call_id,
+                    "name": tool_name,
+                    "arguments": tool_args_delta,
+                },
+            }
+        ),
+        _j(
+            {
+                "type": "response.done",
+                "response": {
+                    "id": "resp_test",
+                    "model": "gpt-4o",
+                    "usage": {
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                    },
+                },
+            }
+        ),
         "data: [DONE]",
     ]
 
@@ -147,15 +229,32 @@ def _build_error_after_delta_lines(
 ) -> list[str]:
     """Build SSE lines: one delta, then an error event."""
     return [
-        _j({"type": "response.created",
-            "response": {"id": "resp_test", "model": "gpt-4o"}}),
-        _j({"type": "response.output_item.added",
-            "output_index": output_index,
-            "item": {"type": "message"}}),
-        _j({"type": "response.output_text.delta",
-            "output_index": output_index, "delta": delta_before_error}),
-        _j({"type": "error",
-            "error": {"message": "stream interrupted", "code": "server_error"}}),
+        _j(
+            {
+                "type": "response.created",
+                "response": {"id": "resp_test", "model": "gpt-4o"},
+            }
+        ),
+        _j(
+            {
+                "type": "response.output_item.added",
+                "output_index": output_index,
+                "item": {"type": "message"},
+            }
+        ),
+        _j(
+            {
+                "type": "response.output_text.delta",
+                "output_index": output_index,
+                "delta": delta_before_error,
+            }
+        ),
+        _j(
+            {
+                "type": "error",
+                "error": {"message": "stream interrupted", "code": "server_error"},
+            }
+        ),
         "data: [DONE]",
     ]
 
@@ -163,10 +262,18 @@ def _build_error_after_delta_lines(
 def _build_error_before_delta_lines() -> list[str]:
     """Build SSE lines: error event with NO prior deltas."""
     return [
-        _j({"type": "response.created",
-            "response": {"id": "resp_test", "model": "gpt-4o"}}),
-        _j({"type": "error",
-            "error": {"message": "bad request", "code": "invalid_request"}}),
+        _j(
+            {
+                "type": "response.created",
+                "response": {"id": "resp_test", "model": "gpt-4o"},
+            }
+        ),
+        _j(
+            {
+                "type": "error",
+                "error": {"message": "bad request", "code": "invalid_request"},
+            }
+        ),
         "data: [DONE]",
     ]
 
@@ -174,23 +281,49 @@ def _build_error_before_delta_lines() -> list[str]:
 def _build_empty_delta_lines() -> list[str]:
     """SSE lines with an empty-string delta (should NOT emit block_delta)."""
     return [
-        _j({"type": "response.created",
-            "response": {"id": "resp_test", "model": "gpt-4o"}}),
-        _j({"type": "response.output_item.added",
-            "output_index": 0, "item": {"type": "message"}}),
+        _j(
+            {
+                "type": "response.created",
+                "response": {"id": "resp_test", "model": "gpt-4o"},
+            }
+        ),
+        _j(
+            {
+                "type": "response.output_item.added",
+                "output_index": 0,
+                "item": {"type": "message"},
+            }
+        ),
         # empty delta — must NOT emit block_delta
-        _j({"type": "response.output_text.delta",
-            "output_index": 0, "delta": ""}),
+        _j({"type": "response.output_text.delta", "output_index": 0, "delta": ""}),
         # non-empty delta — must emit block_delta
-        _j({"type": "response.output_text.delta",
-            "output_index": 0, "delta": "real text"}),
-        _j({"type": "response.output_item.done",
-            "output_index": 0,
-            "item": {"type": "message",
-                     "content": [{"type": "output_text", "text": "real text"}]}}),
-        _j({"type": "response.done", "response": {
-            "id": "resp_test", "model": "gpt-4o",
-            "usage": {"input_tokens": 5, "output_tokens": 2}}}),
+        _j(
+            {
+                "type": "response.output_text.delta",
+                "output_index": 0,
+                "delta": "real text",
+            }
+        ),
+        _j(
+            {
+                "type": "response.output_item.done",
+                "output_index": 0,
+                "item": {
+                    "type": "message",
+                    "content": [{"type": "output_text", "text": "real text"}],
+                },
+            }
+        ),
+        _j(
+            {
+                "type": "response.done",
+                "response": {
+                    "id": "resp_test",
+                    "model": "gpt-4o",
+                    "usage": {"input_tokens": 5, "output_tokens": 2},
+                },
+            }
+        ),
         "data: [DONE]",
     ]
 
@@ -382,7 +515,9 @@ class TestStreamingContractConformance:
 
         provider = _make_provider()
         request = ChatRequest(messages=[Message(role="user", content="hi")])
-        lines = _build_text_stream_lines(["A", "B", "C"], output_index=0, full_text="ABC")
+        lines = _build_text_stream_lines(
+            ["A", "B", "C"], output_index=0, full_text="ABC"
+        )
 
         with patch(
             "amplifier_module_provider_openai_chatgpt.provider.httpx.AsyncClient"
@@ -429,7 +564,8 @@ class TestStreamingContractConformance:
         )
         # Must emit llm:stream_block_delta with block_type='thinking'
         thinking_deltas = [
-            (n, p) for n, p in events
+            (n, p)
+            for n, p in events
             if n == "llm:stream_block_delta" and p.get("block_type") == "thinking"
         ]
         assert len(thinking_deltas) == 1, (
@@ -781,7 +917,8 @@ class TestStreamingContractConformance:
         )
         # Must emit llm:stream_block_delta with block_type='thinking'
         thinking_deltas = [
-            (n, p) for n, p in events
+            (n, p)
+            for n, p in events
             if n == "llm:stream_block_delta" and p.get("block_type") == "thinking"
         ]
         assert len(thinking_deltas) == 1, (

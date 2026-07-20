@@ -24,14 +24,14 @@ Connects Amplifier to the ChatGPT backend API using OAuth device code authentica
 
 ```toml
 [providers.provider-openai-chatgpt]
-default_model = "gpt-5.5"
+default_model = "gpt-5.6-sol"
 ```
 
 ### All Config Options
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `default_model` | str | `"gpt-5.5"` | Model to use for inference |
+| `default_model` | str | `"gpt-5.6-sol"` | Model to use for inference |
 | `raw` | bool | `false` | Include full request/response payloads in `llm:request`/`llm:response` hook events (for debugging) |
 | `login_on_mount` | bool | `true` | Trigger interactive device code login if tokens are absent or expired. Set `false` for non-interactive environments. |
 | `token_file_path` | str | `~/.amplifier/openai-chatgpt-oauth.json` | Path to the OAuth token JSON file |
@@ -54,16 +54,26 @@ Works in SSH/headless sessions -- the device code flow only requires a browser o
 
 ## Features
 
-- OAuth device code authentication with PKCE (no API key needed)
-- Raw httpx + manual SSE streaming (not the OpenAI SDK)
-- Automatic token refresh with 4-step fallback chain
-- Dynamic model catalog from live API (cached, with fallback)
-- Subscription plan type detection from OAuth JWT
-- Tool calling support
-- Reasoning effort support (`low`/`medium`/`high`/`xhigh` on all gpt-5.x models)
-- `-fast` model suffix support (e.g. `gpt-5.5-fast` -> `gpt-5.5` with `service_tier: "priority"`)
-- Production routing matrix for all 13 Amplifier agent roles
-- `llm:request`/`llm:response` hook events with optional raw payload inclusion
+- OAuth device-code authentication with bounded, protocol-aware polling
+- Dynamic account-scoped model catalog with a safe retryable fallback
+- [Documented GPT-5.6 family](https://developers.openai.com/api/docs/guides/model-guidance?model=gpt-5.6):
+  `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`
+- Official [Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol),
+  [Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra), and
+  [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna) metadata:
+  1,050,000-token context and 128,000-token maximum output; the family guide
+  documents reasoning `none`/`low`/`medium`/`high`/`xhigh`/`max`
+- Raw httpx SSE streaming, tool calling, and explicit request-model overrides
+
+Public model documentation does not establish what any particular ChatGPT
+account can use. At runtime, the provider uses the authenticated backend catalog
+only to resolve available candidates; it does not need to collect or document a
+user's subscription plan. The fallback does not claim `fast` support, and a
+synthetic `-fast` compatibility ID is emitted only when the live catalog reports
+that tier. If GPT-5.6 is absent during staged rollout, routing skips those exact
+candidates and uses a model exposed by the live catalog. It never invents a
+synthetic GPT-5.6 Codex identifier; coding first matches catalog-provided Codex
+models, then Terra and Sol.
 
 ## Local Development
 
@@ -120,7 +130,7 @@ providers:
   - module: provider-openai-chatgpt
     source: /path/to/amplifier-module-provider-openai-chatgpt
     config:
-      default_model: gpt-5.5
+      default_model: gpt-5.6-sol
 ---
 
 # Test: provider-openai-chatgpt
@@ -132,50 +142,33 @@ amplifier run --bundle ./test-chatgpt.md "Hello, can you hear me?"
 
 ## Routing Matrix
 
-This module ships with a production routing matrix at `routing/openai-chatgpt.yaml` that maps all 13 Amplifier agent roles to the correct models. This is **required** for agent delegation to work -- without it, agents like `web-research`, `explorer`, and `zen-architect` will fail to resolve a provider.
+`routing/openai-chatgpt.yaml` documents the policy and maps all 13 roles.
+OpenAI's public model guidance positions Sol as flagship, Terra as balanced, and
+Luna as efficient for high-volume work; candidate order is this repository's
+policy:
 
-To use it:
+- General and quality-first roles prefer Sol, then Terra and Luna.
+- Fast work prefers Luna, then Terra and Sol.
+- Coding prefers a catalog-provided Codex model, then Terra and Sol.
+- Reasoning roles prefer Sol or Terra with the effort recorded in the matrix.
 
-```bash
-# Copy to your user routing directory
-cp routing/openai-chatgpt.yaml ~/.amplifier/routing/
-
-# Activate it
-amplifier routing use openai-chatgpt
-
-# Verify
-amplifier routing show
-```
-
-The matrix uses two-tier fallback chains (gpt-5.5 -> gpt-5.4) so it works across subscription tiers. Role highlights:
-
-| Role | Primary Model | Config |
-|------|--------------|--------|
-| `general`, `creative`, `writing`, `vision` | gpt-5.5 | -- |
-| `fast` | gpt-?.?-mini* (glob) | -- |
-| `coding` | gpt-?.?-codex* (glob) | -- |
-| `reasoning`, `research`, `security-audit`, `critical-ops` | gpt-5.5 | `reasoning_effort: high` |
-| `critique` | gpt-5.5 | `reasoning_effort: xhigh` |
-
-See the matrix YAML header for full documentation on glob strategy, fallback philosophy, and differences from the standard `openai` routing matrix.
+A final live-catalog `gpt-5.*` glob keeps role-based, unconfigured requests
+usable when GPT-5.6 is unavailable during staged rollout.
+Explicit `request.model` always wins. The provider does not inspect subscription
+data or silently replace an explicit caller selection.
 
 ## Supported Models
 
-The model catalog is fetched dynamically from the ChatGPT backend API at `GET /backend-api/codex/models`. Available models depend on your subscription tier. The catalog is cached for 1 hour (configurable via `models_cache_ttl`).
-
-Example catalog for a **Plus** subscription (as of April 2026):
-
-| Model | Context Window | Priority | Speed Tiers | Reasoning |
-|-------|---------------|----------|-------------|-----------|
-| gpt-5.5 | 272K | 0 (highest) | fast | low/med/high/xhigh |
-| gpt-5.4 | 272K | 2 | fast | low/med/high/xhigh |
-| gpt-5.4-mini | 272K | 4 | -- | low/med/high/xhigh |
-| gpt-5.3-codex | 272K | 6 | -- | low/med/high/xhigh |
-| gpt-5.2 | 272K | 10 | -- | low/med/high/xhigh |
-
-Models with a "fast" speed tier support a `-fast` suffix (e.g. `gpt-5.5-fast`) which maps to `service_tier: "priority"` in the request. This consumes priority quota faster.
-
-If the live API is unreachable, a minimal fallback catalog (gpt-5.2, gpt-5.2-codex, gpt-4o) is used. The fallback is not cached, so the next `list_models()` call retries the live API.
+Only the documented GPT-5.6 identifiers are included in the static fallback:
+[Sol (`gpt-5.6-sol`)](https://developers.openai.com/api/docs/models/gpt-5.6-sol),
+[Terra (`gpt-5.6-terra`)](https://developers.openai.com/api/docs/models/gpt-5.6-terra),
+and [Luna (`gpt-5.6-luna`)](https://developers.openai.com/api/docs/models/gpt-5.6-luna).
+Each model page reports a 1,050,000-token context and 128,000-token maximum
+output. OpenAI's [GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/model-guidance?model=gpt-5.6)
+documents the family roles, reasoning levels, and that the `gpt-5.6` alias routes
+to Sol. Runtime visibility and speed-tier data are read from the authenticated
+`GET /backend-api/codex/models` response; no speculative `fast` variant or
+account entitlement is hardcoded.
 
 ## DTU Validation
 
@@ -185,7 +178,8 @@ This module includes a [Digital Twin Universe](https://github.com/microsoft/ampl
 # Launch (requires Incus and a valid OAuth token on the host)
 amplifier-digital-twin launch \
   .amplifier/digital-twin-universe/profiles/chatgpt-provider-reality-check.yaml \
-  --var OAUTH_TOKEN_FILE=$HOME/.amplifier/openai-chatgpt-oauth.json
+  --var OAUTH_TOKEN_FILE=$HOME/.amplifier/openai-chatgpt-oauth.json \
+  --var PROVIDER_SHA=<candidate-sha>
 
 # Check readiness
 amplifier-digital-twin check-readiness <id>
@@ -208,6 +202,8 @@ See [docs/DTU_VALIDATION.md](docs/DTU_VALIDATION.md) for the full guide covering
 - `httpx` - HTTP client for raw API requests
 
 ## Contributing
+
+Downstream maintainers must follow the [upstream synchronization and branch strategy](docs/BRANCH_STRATEGY.md); custom pull requests target `downstream`, never the clean `main` mirror.
 
 > [!NOTE]
 > This project is not currently accepting external contributions, but we're actively working toward opening this up. We value community input and look forward to collaborating in the future. For now, feel free to fork and experiment!

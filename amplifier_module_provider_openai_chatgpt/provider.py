@@ -98,7 +98,7 @@ class ChatGPTProvider:
 
         self.priority: int = int(self._config.get("priority", 100))
         self.raw: bool = bool(self._config.get("raw", False))
-        self.default_model: str = self._config.get("default_model", "gpt-5.5")
+        self.default_model: str = self._config.get("default_model", "gpt-5.6-sol")
         self.timeout: float = float(self._config.get("timeout", 300.0))
         self._token_file_path: str | None = self._config.get("token_file_path")
 
@@ -678,7 +678,7 @@ class ChatGPTProvider:
         request_id: str = str(uuid.uuid4())
         seq: dict[int, int] = {}
         block_types: dict[int, str] = {}
-        any_emitted: bool = False          # True once any delta/thinking event is emitted
+        any_emitted: bool = False  # True once any delta/thinking event is emitted
         stream_aborted_emitted: bool = False
 
         # Local guard variable — concurrency-safe (no instance-level mutation).

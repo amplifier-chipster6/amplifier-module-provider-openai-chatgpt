@@ -25,65 +25,37 @@ MODELS_ENDPOINT = f"{CHATGPT_CODEX_BASE_URL}/models"
 MODELS_CLIENT_VERSION = "99.99.99"
 
 DEFAULT_CACHE_TTL_SECONDS = 3600
+# Public GPT-5.6 model pages report a 128,000-token maximum output.
+# https://developers.openai.com/api/docs/models/gpt-5.6-sol
 DEFAULT_MAX_OUTPUT_TOKENS = 128_000
 
 # ---------------------------------------------------------------------------
 # Fallback model catalog
 # ---------------------------------------------------------------------------
 
+# Public API sources retrieved 2026-07-20:
+# - https://developers.openai.com/api/docs/models/gpt-5.6-sol
+# - https://developers.openai.com/api/docs/models/gpt-5.6-terra
+# - https://developers.openai.com/api/docs/models/gpt-5.6-luna
+# - https://developers.openai.com/api/docs/guides/model-guidance?model=gpt-5.6
+#
+# These sources establish the IDs, display names, context limit, maximum output,
+# and supported reasoning levels.  Private ChatGPT-catalog fields such as
+# visibility, account availability, and additional_speed_tiers are deliberately
+# omitted: only the authenticated live catalog can establish them for an account.
 FALLBACK_MODELS: list[dict[str, Any]] = [
     {
-        "slug": "gpt-5.5",
-        "display_name": "GPT 5.5",
-        "context_window": 1_000_000,
-        "max_context_window": 1_000_000,
-        "additional_speed_tiers": ["fast"],
-        "supported_reasoning_levels": ["none", "low", "medium", "high"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
-    {
-        "slug": "gpt-5.4",
-        "display_name": "GPT 5.4",
-        # context_window: effective limit for standard-tier subscriptions;
-        # max_context_window: full capacity available on higher-tier plans.
-        "context_window": 272_000,
+        "slug": slug,
+        "display_name": display_name,
+        "context_window": 1_050_000,
         "max_context_window": 1_050_000,
-        "additional_speed_tiers": ["fast"],
-        "supported_reasoning_levels": ["none", "low", "medium", "high"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
-    {
-        "slug": "gpt-5.4-mini",
-        "display_name": "GPT 5.4 mini",
-        "context_window": 1_047_576,
-        "max_context_window": 1_047_576,
-        "additional_speed_tiers": [],
-        "supported_reasoning_levels": ["none", "low", "medium"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
-    {
-        "slug": "gpt-5.3-codex",
-        "display_name": "GPT-5.3 codex",
-        "context_window": 400_000,
-        "max_context_window": 400_000,
-        "additional_speed_tiers": [],
-        "supported_reasoning_levels": ["none", "low", "medium", "high"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
-    {
-        "slug": "gpt-5.2",
-        "display_name": "GPT 5.2",
-        "context_window": 272_000,
-        "max_context_window": 272_000,
-        "additional_speed_tiers": ["fast"],
-        "supported_reasoning_levels": ["none", "low", "medium", "high"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
+        "supported_reasoning_levels": ["none", "low", "medium", "high", "xhigh", "max"],
+    }
+    for slug, display_name in (
+        ("gpt-5.6-sol", "GPT-5.6 Sol"),
+        ("gpt-5.6-terra", "GPT-5.6 Terra"),
+        ("gpt-5.6-luna", "GPT-5.6 Luna"),
+    )
 ]
 
 

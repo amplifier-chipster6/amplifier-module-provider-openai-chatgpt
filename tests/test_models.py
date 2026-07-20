@@ -179,14 +179,26 @@ class TestToModelInfos:
         assert len(result) == 1
         assert result[0].id == "gpt-4o"
 
-    def test_fallback_first_entry_is_gpt_55(self) -> None:
-        """FALLBACK_MODELS first entry must be gpt-5.5 (most-capable current model)."""
+    def test_fallback_contains_exact_gpt_56_models(self) -> None:
+        """Fallback contains only the three documented GPT-5.6 IDs."""
         from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
 
-        assert len(FALLBACK_MODELS) > 0, "FALLBACK_MODELS must not be empty"
-        assert FALLBACK_MODELS[0]["slug"] == "gpt-5.5", (
-            f"Expected gpt-5.5 as first fallback entry, got {FALLBACK_MODELS[0]['slug']!r}"
-        )
+        assert [m["slug"] for m in FALLBACK_MODELS] == [
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+        ]
+        assert [m["display_name"] for m in FALLBACK_MODELS] == [
+            "GPT-5.6 Sol",
+            "GPT-5.6 Terra",
+            "GPT-5.6 Luna",
+        ]
+        assert all(m["context_window"] == 1_050_000 for m in FALLBACK_MODELS)
+        assert all(m["max_context_window"] == 1_050_000 for m in FALLBACK_MODELS)
+        for model in FALLBACK_MODELS:
+            assert "additional_speed_tiers" not in model
+            assert "visibility" not in model
+            assert "supported_in_api" not in model
 
     def test_fallback_models_round_trip(self) -> None:
         """FALLBACK_MODELS through to_model_infos produces valid ModelInfo objects."""
@@ -199,7 +211,11 @@ class TestToModelInfos:
 
         result = to_model_infos(FALLBACK_MODELS)
 
-        assert len(result) > 0
+        assert [model.id for model in result] == [
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+        ]
         for m in result:
             assert isinstance(m, ModelInfo)
             assert m.id, f"ModelInfo missing id: {m}"

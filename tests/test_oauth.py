@@ -475,7 +475,9 @@ class TestRefreshTokens:
 
         token_path = str(tmp_path / "tokens.json")
         with open(token_path, "w") as f:
-            json.dump({"account_id": "acct_1", "plan_type": "free", "access_token": "old"}, f)
+            json.dump(
+                {"account_id": "acct_1", "plan_type": "free", "access_token": "old"}, f
+            )
 
         id_token_jwt = _make_jwt(
             {"https://api.openai.com/auth": {"chatgpt_plan_type": "pro"}}
@@ -504,7 +506,9 @@ class TestRefreshTokens:
 
         token_path = str(tmp_path / "tokens.json")
         with open(token_path, "w") as f:
-            json.dump({"account_id": "acct_1", "plan_type": "plus", "access_token": "old"}, f)
+            json.dump(
+                {"account_id": "acct_1", "plan_type": "plus", "access_token": "old"}, f
+            )
 
         mock_async_client = _make_httpx_mock(
             {
@@ -577,7 +581,15 @@ class TestDeviceCodeFlow:
         assert result["authorization_code"] == "auth_code_xyz"
         assert "code_verifier" in result
 
-    def test_handles_authorization_pending_then_success(self):
+    @pytest.mark.parametrize(
+        "pending_code",
+        [
+            "deviceauth_authorization_pending",
+            "authorization_pending",
+            "deviceauth_authorization_unknown",
+        ],
+    )
+    def test_handles_authorization_pending_then_success(self, pending_code):
         from amplifier_module_provider_openai_chatgpt.oauth import (
             start_device_code_flow,
         )
@@ -586,9 +598,7 @@ class TestDeviceCodeFlow:
             # Step 1: usercode endpoint response
             {"user_code": "ABC-123", "device_auth_id": "dev_001", "interval": 5},
             # Poll 1: authorization still pending (arrives as 4xx)
-            _make_httpx_status_error(
-                {"error": {"code": "deviceauth_authorization_unknown"}}
-            ),
+            _make_httpx_status_error({"error": {"code": pending_code}}),
             # Poll 2: success
             {"authorization_code": "auth_code_xyz"},
         )
@@ -605,6 +615,44 @@ class TestDeviceCodeFlow:
 
         assert result["authorization_code"] == "auth_code_xyz"
         assert mock_sleep.call_count == 2
+
+    def test_slow_down_increases_poll_interval(self):
+        from amplifier_module_provider_openai_chatgpt.oauth import (
+            start_device_code_flow,
+        )
+
+        mock = _make_httpx_mock(
+            {"user_code": "ABC", "device_auth_id": "dev", "interval": 1},
+            _make_httpx_status_error({"error": {"code": "slow_down"}}),
+            {"authorization_code": "ok"},
+        )
+        sleep = AsyncMock()
+        with (
+            patch(
+                "amplifier_module_provider_openai_chatgpt.oauth.httpx.AsyncClient", mock
+            ),
+            patch("asyncio.sleep", sleep),
+        ):
+            assert asyncio.run(start_device_code_flow())["authorization_code"] == "ok"
+        assert sleep.call_args_list[1].args[0] >= 6
+
+    def test_denial_raises(self):
+        from amplifier_module_provider_openai_chatgpt.oauth import (
+            start_device_code_flow,
+        )
+
+        mock = _make_httpx_mock(
+            {"user_code": "ABC", "device_auth_id": "dev", "interval": 1},
+            _make_httpx_status_error({"error": {"code": "access_denied"}}),
+        )
+        with (
+            patch(
+                "amplifier_module_provider_openai_chatgpt.oauth.httpx.AsyncClient", mock
+            ),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            with pytest.raises(RuntimeError, match="denied"):
+                asyncio.run(start_device_code_flow())
 
     def test_expired_device_code_raises(self):
         from amplifier_module_provider_openai_chatgpt.oauth import (

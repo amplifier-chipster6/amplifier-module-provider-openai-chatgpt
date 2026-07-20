@@ -27,25 +27,27 @@ class TestFallbackCatalog:
         for entry in FALLBACK_MODELS:
             assert "slug" in entry, f"Missing 'slug' in {entry}"
 
-    def test_fallback_first_entry_is_gpt_55(self) -> None:
+    def test_fallback_is_verified_gpt_56_catalog(self) -> None:
         from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
 
-        assert len(FALLBACK_MODELS) > 0, "FALLBACK_MODELS must not be empty"
-        assert FALLBACK_MODELS[0]["slug"] == "gpt-5.5", (
-            f"Expected gpt-5.5 as first fallback entry, got {FALLBACK_MODELS[0]['slug']!r}"
-        )
-
-    def test_fallback_contains_gpt_52(self) -> None:
-        from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
-
-        slugs = [m["slug"] for m in FALLBACK_MODELS]
-        assert "gpt-5.2" in slugs
-
-    def test_fallback_gpt_52_has_fast_tier(self) -> None:
-        from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
-
-        entry = next(m for m in FALLBACK_MODELS if m["slug"] == "gpt-5.2")
-        assert "fast" in entry.get("additional_speed_tiers", [])
+        assert [entry["slug"] for entry in FALLBACK_MODELS] == [
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+        ]
+        for entry in FALLBACK_MODELS:
+            assert entry["context_window"] == 1_050_000
+            assert entry["supported_reasoning_levels"] == [
+                "none",
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max",
+            ]
+            assert "additional_speed_tiers" not in entry
+            assert "visibility" not in entry
+            assert "supported_in_api" not in entry
 
 
 # ---------------------------------------------------------------------------
@@ -1460,6 +1462,32 @@ class TestListModelsDynamic:
         assert len(result) > 0, "Expected non-empty fallback models"
         # Cache must NOT be populated — next call should retry the live fetch.
         assert provider._models_cache is None  # type: ignore[union-attr]
+
+    @pytest.mark.asyncio
+    async def test_partial_live_catalog_is_not_padded_with_fallback_models(
+        self,
+    ) -> None:
+        """A successful partial catalog is authoritative for this account."""
+        provider = self._make_provider()
+        partial_catalog = [
+            {
+                "slug": "gpt-5.6-sol",
+                "display_name": "GPT-5.6 Sol",
+                "context_window": 1_050_000,
+                "supported_in_api": True,
+                "visibility": "visible",
+            }
+        ]
+        mock_fetch = AsyncMock(return_value=partial_catalog)
+
+        with patch(
+            "amplifier_module_provider_openai_chatgpt.provider.fetch_models",
+            mock_fetch,
+        ):
+            result = await provider.list_models()  # type: ignore[union-attr]
+
+        assert [model.id for model in result] == ["gpt-5.6-sol"]
+        assert provider._models_cache is not None  # type: ignore[union-attr]
 
     # ------------------------------------------------------------------
     # Concurrent calls fetch exactly once
