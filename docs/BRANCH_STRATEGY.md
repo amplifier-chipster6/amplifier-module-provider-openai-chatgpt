@@ -27,6 +27,33 @@ The verified recovery base is
 `265f4aeb3dfd69515740a847cfc7aba8dca85dfa`. Substitute a newer SHA below only
 when it has been fetched from Microsoft and independently reviewed.
 
+
+## Current recovery inventory
+
+The only active recovery candidate is PR #8 from
+`release/gpt-5.6-provider-recovery` into `downstream`. PRs #1 through #7 are
+historical inputs or superseded experiments; they remain visible for review and
+incident evidence, but they must not be merged or used to assemble a release.
+
+The following refs have special non-release roles:
+
+- `archive/original-unrelated-main` preserves the accidental unrelated GitHub
+  history. It has no common ancestor with the Microsoft lineage and is never a
+  development or pull-request base.
+- `feat/chatgpt-5-6-routing-implemented` and the `pre-clean-reinstall` tag
+  preserve the original in-place GPT-5.6 incident state. They are forensic
+  evidence, not release candidates.
+- `fix/oauth-device-code-polling` is an empty branch at the verified base and
+  contains no OAuth repair. The historical repair source was
+  `codex/fix-oauth-device-code-polling-behavior`; its required behavior is
+  consolidated into PR #8.
+- `feat/chatgpt-5-6-routing-clean` and the `codex/linear-mention-*` branches are
+  superseded parallel work. Preserve them until the recovery is accepted, but
+  do not retarget, merge, or continue them.
+
+Do not delete these refs as part of the recovery. Any later cleanup requires a
+separate preservation review after PR #8 has passed its release gates.
+
 ## One-time remote setup and topology check
 
 Run these commands from the repository root:
