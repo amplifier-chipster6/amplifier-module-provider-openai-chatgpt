@@ -56,16 +56,24 @@ Works in SSH/headless sessions -- the device code flow only requires a browser o
 
 - OAuth device-code authentication with bounded, protocol-aware polling
 - Dynamic account-scoped model catalog with a safe retryable fallback
-- Documented GPT-5.6 IDs: `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`
-- Verified GPT-5.6 metadata: 1,050,000-token context, 128,000 maximum output,
-  and reasoning `none`/`low`/`medium`/`high`/`xhigh`/`max`
+- [Documented GPT-5.6 family](https://developers.openai.com/api/docs/guides/model-guidance?model=gpt-5.6):
+  `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`
+- Official [Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol),
+  [Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra), and
+  [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna) metadata:
+  1,050,000-token context and 128,000-token maximum output; the family guide
+  documents reasoning `none`/`low`/`medium`/`high`/`xhigh`/`max`
 - Raw httpx SSE streaming, tool calling, and explicit request-model overrides
 
-The backend catalog, account entitlement, visibility, and speed tiers are live,
-account-scoped facts. The fallback therefore does not claim `fast` support. If
-GPT-5.6 is absent during staged rollout, the routing matrix skips those exact
-candidates and uses a model exposed by the live catalog. It never invents a synthetic GPT-5.6 Codex identifier; coding first matches
-catalog-provided Codex models, then Terra and Sol.
+Public model documentation does not establish what any particular ChatGPT
+account can use. At runtime, the provider uses the authenticated backend catalog
+only to resolve available candidates; it does not need to collect or document a
+user's subscription plan. The fallback does not claim `fast` support, and a
+synthetic `-fast` compatibility ID is emitted only when the live catalog reports
+that tier. If GPT-5.6 is absent during staged rollout, routing skips those exact
+candidates and uses a model exposed by the live catalog. It never invents a
+synthetic GPT-5.6 Codex identifier; coding first matches catalog-provided Codex
+models, then Terra and Sol.
 
 ## Local Development
 
@@ -142,10 +150,15 @@ when an account has not received GPT-5.6. Explicit `request.model` always wins.
 ## Supported Models
 
 Only the documented GPT-5.6 identifiers are included in the static fallback:
-`gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`. Each has a 1,050,000-token
-context and 128,000-token maximum output. Actual visibility, entitlement, and
-speed tiers come from `GET /backend-api/codex/models`; no speculative `fast`
-variant is hardcoded.
+[Sol (`gpt-5.6-sol`)](https://developers.openai.com/api/docs/models/gpt-5.6-sol),
+[Terra (`gpt-5.6-terra`)](https://developers.openai.com/api/docs/models/gpt-5.6-terra),
+and [Luna (`gpt-5.6-luna`)](https://developers.openai.com/api/docs/models/gpt-5.6-luna).
+Each model page reports a 1,050,000-token context and 128,000-token maximum
+output. OpenAI's [GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/model-guidance?model=gpt-5.6)
+documents the family roles, reasoning levels, and that the `gpt-5.6` alias routes
+to Sol. Runtime visibility and speed-tier data are read from the authenticated
+`GET /backend-api/codex/models` response; no speculative `fast` variant or
+account entitlement is hardcoded.
 
 ## DTU Validation
 
