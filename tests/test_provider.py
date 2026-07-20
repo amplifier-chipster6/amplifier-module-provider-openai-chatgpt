@@ -27,25 +27,25 @@ class TestFallbackCatalog:
         for entry in FALLBACK_MODELS:
             assert "slug" in entry, f"Missing 'slug' in {entry}"
 
-    def test_fallback_first_entry_is_gpt_55(self) -> None:
+    def test_fallback_is_verified_gpt_56_catalog(self) -> None:
         from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
 
-        assert len(FALLBACK_MODELS) > 0, "FALLBACK_MODELS must not be empty"
-        assert FALLBACK_MODELS[0]["slug"] == "gpt-5.5", (
-            f"Expected gpt-5.5 as first fallback entry, got {FALLBACK_MODELS[0]['slug']!r}"
-        )
-
-    def test_fallback_contains_gpt_52(self) -> None:
-        from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
-
-        slugs = [m["slug"] for m in FALLBACK_MODELS]
-        assert "gpt-5.2" in slugs
-
-    def test_fallback_gpt_52_has_fast_tier(self) -> None:
-        from amplifier_module_provider_openai_chatgpt.models import FALLBACK_MODELS
-
-        entry = next(m for m in FALLBACK_MODELS if m["slug"] == "gpt-5.2")
-        assert "fast" in entry.get("additional_speed_tiers", [])
+        assert [entry["slug"] for entry in FALLBACK_MODELS] == [
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+        ]
+        for entry in FALLBACK_MODELS:
+            assert entry["context_window"] == 1_050_000
+            assert entry["supported_reasoning_levels"] == [
+                "none",
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max",
+            ]
+            assert entry["additional_speed_tiers"] == []
 
 
 # ---------------------------------------------------------------------------

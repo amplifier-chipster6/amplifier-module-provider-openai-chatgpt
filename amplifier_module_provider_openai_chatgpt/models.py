@@ -33,57 +33,22 @@ DEFAULT_MAX_OUTPUT_TOKENS = 128_000
 
 FALLBACK_MODELS: list[dict[str, Any]] = [
     {
-        "slug": "gpt-5.5",
-        "display_name": "GPT 5.5",
-        "context_window": 1_000_000,
-        "max_context_window": 1_000_000,
-        "additional_speed_tiers": ["fast"],
-        "supported_reasoning_levels": ["none", "low", "medium", "high"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
-    {
-        "slug": "gpt-5.4",
-        "display_name": "GPT 5.4",
-        # context_window: effective limit for standard-tier subscriptions;
-        # max_context_window: full capacity available on higher-tier plans.
-        "context_window": 272_000,
+        "slug": slug,
+        "display_name": display_name,
+        "context_window": 1_050_000,
         "max_context_window": 1_050_000,
-        "additional_speed_tiers": ["fast"],
-        "supported_reasoning_levels": ["none", "low", "medium", "high"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
-    {
-        "slug": "gpt-5.4-mini",
-        "display_name": "GPT 5.4 mini",
-        "context_window": 1_047_576,
-        "max_context_window": 1_047_576,
+        # Speed tiers are live, account-scoped catalog facts.  Do not advertise
+        # a synthetic -fast variant unless the backend returned it.
         "additional_speed_tiers": [],
-        "supported_reasoning_levels": ["none", "low", "medium"],
+        "supported_reasoning_levels": ["none", "low", "medium", "high", "xhigh", "max"],
         "visibility": "list",
         "supported_in_api": True,
-    },
-    {
-        "slug": "gpt-5.3-codex",
-        "display_name": "GPT-5.3 codex",
-        "context_window": 400_000,
-        "max_context_window": 400_000,
-        "additional_speed_tiers": [],
-        "supported_reasoning_levels": ["none", "low", "medium", "high"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
-    {
-        "slug": "gpt-5.2",
-        "display_name": "GPT 5.2",
-        "context_window": 272_000,
-        "max_context_window": 272_000,
-        "additional_speed_tiers": ["fast"],
-        "supported_reasoning_levels": ["none", "low", "medium", "high"],
-        "visibility": "list",
-        "supported_in_api": True,
-    },
+    }
+    for slug, display_name in (
+        ("gpt-5.6-sol", "GPT-5.6 Sol"),
+        ("gpt-5.6-terra", "GPT-5.6 Terra"),
+        ("gpt-5.6-luna", "GPT-5.6 Luna"),
+    )
 ]
 
 

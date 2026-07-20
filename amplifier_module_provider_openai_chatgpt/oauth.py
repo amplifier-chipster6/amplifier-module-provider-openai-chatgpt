@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
@@ -46,6 +47,7 @@ DEVICE_CODE_USERCODE_URL = f"{OAUTH_ISSUER}/api/accounts/deviceauth/usercode"
 DEVICE_CODE_TOKEN_URL = f"{OAUTH_ISSUER}/api/accounts/deviceauth/token"
 DEVICE_CODE_VERIFICATION_URL = f"{OAUTH_ISSUER}/codex/device"
 DEVICE_CODE_POLL_INTERVAL = 5  # seconds between polling attempts
+DEVICE_CODE_DEFAULT_EXPIRES_IN = 900
 
 # ---------------------------------------------------------------------------
 # ChatGPT Codex API
@@ -475,6 +477,8 @@ async def start_device_code_flow() -> dict:
         "device_auth_id", ""
     )
     interval: int = int(device_data.get("interval", DEVICE_CODE_POLL_INTERVAL))
+    expires_in = int(device_data.get("expires_in", DEVICE_CODE_DEFAULT_EXPIRES_IN))
+    deadline = time.monotonic() + expires_in
 
     # Step 2: Prompt the user to authorize via their browser.
     # Use stderr so the message is visible even when the CLI UI has captured stdout.
@@ -501,7 +505,11 @@ async def start_device_code_flow() -> dict:
     }
 
     while True:
-        await asyncio.sleep(interval)
+        if time.monotonic() >= deadline:
+            raise RuntimeError("Device code expired. Please try again.")
+        await asyncio.sleep(min(interval, max(0, deadline - time.monotonic())))
+        if time.monotonic() >= deadline:
+            raise RuntimeError("Device code expired. Please try again.")
 
         poll_data = json.dumps(
             {
@@ -537,13 +545,26 @@ async def start_device_code_flow() -> dict:
 
             if error_code in (
                 "deviceauth_authorization_unknown",
+                "deviceauth_authorization_pending",
                 "authorization_pending",
             ):
                 continue  # User hasn't authorized yet; sleep then retry.
             elif error_code == "slow_down":
                 interval += 5
                 continue
-            elif error_code in ("expired_token", "deviceauth_expired"):
+            elif error_code in (
+                "expired_token",
+                "deviceauth_expired",
+                "access_denied",
+                "authorization_declined",
+                "deviceauth_authorization_denied",
+            ):
+                if error_code in (
+                    "access_denied",
+                    "authorization_declined",
+                    "deviceauth_authorization_denied",
+                ):
+                    raise RuntimeError("Device authorization was denied.")
                 raise RuntimeError("Device code expired. Please try again.")
             else:
                 raise RuntimeError(f"Device code flow error: {error_code} - {body}")
