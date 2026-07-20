@@ -180,6 +180,8 @@ See [docs/DTU_VALIDATION.md](docs/DTU_VALIDATION.md) for the full guide covering
 
 ## Contributing
 
+Downstream maintainers must follow the [upstream synchronization and branch strategy](docs/BRANCH_STRATEGY.md); custom pull requests target `downstream`, never the clean `main` mirror.
+
 > [!NOTE]
 > This project is not currently accepting external contributions, but we're actively working toward opening this up. We value community input and look forward to collaborating in the future. For now, feel free to fork and experiment!
 
