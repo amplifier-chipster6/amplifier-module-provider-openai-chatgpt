@@ -25,24 +25,31 @@ MODELS_ENDPOINT = f"{CHATGPT_CODEX_BASE_URL}/models"
 MODELS_CLIENT_VERSION = "99.99.99"
 
 DEFAULT_CACHE_TTL_SECONDS = 3600
+# Public GPT-5.6 model pages report a 128,000-token maximum output.
+# https://developers.openai.com/api/docs/models/gpt-5.6-sol
 DEFAULT_MAX_OUTPUT_TOKENS = 128_000
 
 # ---------------------------------------------------------------------------
 # Fallback model catalog
 # ---------------------------------------------------------------------------
 
+# Public API sources retrieved 2026-07-20:
+# - https://developers.openai.com/api/docs/models/gpt-5.6-sol
+# - https://developers.openai.com/api/docs/models/gpt-5.6-terra
+# - https://developers.openai.com/api/docs/models/gpt-5.6-luna
+# - https://developers.openai.com/api/docs/guides/model-guidance?model=gpt-5.6
+#
+# These sources establish the IDs, display names, context limit, maximum output,
+# and supported reasoning levels.  Private ChatGPT-catalog fields such as
+# visibility, account availability, and additional_speed_tiers are deliberately
+# omitted: only the authenticated live catalog can establish them for an account.
 FALLBACK_MODELS: list[dict[str, Any]] = [
     {
         "slug": slug,
         "display_name": display_name,
         "context_window": 1_050_000,
         "max_context_window": 1_050_000,
-        # Speed tiers are live, account-scoped catalog facts.  Do not advertise
-        # a synthetic -fast variant unless the backend returned it.
-        "additional_speed_tiers": [],
         "supported_reasoning_levels": ["none", "low", "medium", "high", "xhigh", "max"],
-        "visibility": "list",
-        "supported_in_api": True,
     }
     for slug, display_name in (
         ("gpt-5.6-sol", "GPT-5.6 Sol"),
